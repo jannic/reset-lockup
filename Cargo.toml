@@ -15,7 +15,8 @@ panic-probe = { version = "0.3", features = ["print-defmt"] }
 
 # If you're not going to use a Board Support Package you'll need these:
 rp2040-hal = { version="0.10", features=["rt", "critical-section-impl"] }
-rp2040-boot2 = "0.3"
+#rp2040-boot2 = "0.3"
+rp2040-boot2 = { path = "/home/jan/rp-rs/rp2040-boot2-rs/" }
 panic-halt = "0.2.0"
 
 # cargo build/run

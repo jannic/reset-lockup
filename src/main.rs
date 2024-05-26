@@ -33,7 +33,8 @@ use embedded_hal::digital::{OutputPin, StatefulOutputPin};
 /// as the BSPs already perform this step.
 #[link_section = ".boot2"]
 #[used]
-pub static BOOT2: [u8; 256] = rp2040_boot2::BOOT_LOADER_GENERIC_03H;
+pub static BOOT2: [u8; 256] = rp2040_boot2::BOOT_LOADER_GENERIC_03H_DELAYED;
+// pub static BOOT2: [u8; 256] = rp2040_boot2::BOOT_LOADER_GENERIC_03H;
 // pub static BOOT2: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 
 /// External high-speed crystal on the Raspberry Pi Pico board is 12 MHz. Adjust
