@@ -63,7 +63,11 @@ fn delay() {
         // let real_cycles = 10000000;
 
         // Use this to view the signal on a logic analyzer instead
-        let real_cycles = 10;
+        // let real_cycles = 10;
+
+        // This delay should be long enough to let core1 slide down the nop slide
+        // so it can turn on the LED before it gets reset by core1.spawn()
+        let real_cycles = 5000;
 
         core::arch::asm!(
             // Use local labels to avoid R_ARM_THM_JUMP8 relocations which fail on thumbv6m.
@@ -93,34 +97,36 @@ fn blink(led: &mut impl OutputPin, count: u8) {
 #[rp2040_hal::entry]
 fn main() -> ! {
     // unsafe {
-        // (*pac::SIO::PTR).gpio_out_clr().write(|w| w.bits(1 << 25));
-        // (*pac::PSM::PTR)
-        //     .frce_off()
-        //     .modify(|_, w| w.proc1().set_bit());
-        // cortex_m::asm::delay(1000);
-        // (*pac::PSM::PTR)
-        //     .frce_off()
-        //     .modify(|_, w| w.proc1().clear_bit());
+    // (*pac::SIO::PTR).gpio_out_clr().write(|w| w.bits(1 << 25));
+    // (*pac::PSM::PTR)
+    //     .frce_off()
+    //     .modify(|_, w| w.proc1().set_bit());
+    // cortex_m::asm::delay(1000);
+    // (*pac::PSM::PTR)
+    //     .frce_off()
+    //     .modify(|_, w| w.proc1().clear_bit());
     // }
+
+    delay();
 
     // Grab our singleton objects
     let mut pac = pac::Peripherals::take().unwrap();
     // let core = pac::CorePeripherals::take().unwrap();
 
-    // Set up the GPIO pins
+    // // Set up the GPIO pins
     let mut sio = Sio::new(pac.SIO);
-    let pins = Pins::new(
-        pac.IO_BANK0,
-        pac.PADS_BANK0,
-        sio.gpio_bank0,
-        &mut pac.RESETS,
-    );
+    // let pins = Pins::new(
+    //     pac.IO_BANK0,
+    //     pac.PADS_BANK0,
+    //     sio.gpio_bank0,
+    //     &mut pac.RESETS,
+    // );
 
-    let mut led = pins.gpio25.into_push_pull_output();
+    // let mut led = pins.gpio25.into_push_pull_output();
 
     // pac.BUSCTRL.bus_priority().write(|w| w.proc0().set_bit());
 
-    blink(&mut led, 1);
+    // blink(&mut led, 1);
 
     // Set up the watchdog driver - needed by the clock setup code
     let mut watchdog = hal::watchdog::Watchdog::new(pac.WATCHDOG);
@@ -137,18 +143,22 @@ fn main() -> ! {
     // )
     // .unwrap();
 
-    blink(&mut led, 2);
+    // blink(&mut led, 2);
 
     // Start up the second core to blink the second LED
     let mut mc = Multicore::new(&mut pac.PSM, &mut pac.PPB, &mut sio.fifo);
     let cores = mc.cores();
     let core1 = &mut cores[1];
-    blink(&mut led, 3);
-    core1.spawn(unsafe { &mut CORE1_STACK.mem }, move || {
-        main1();
-    }).unwrap();
-    blink(&mut led, 4);
+    // blink(&mut led, 3);
+    core1
+        .spawn(unsafe { &mut CORE1_STACK.mem }, move || {
+            // main1(&mut led);
+            main1();
+        })
+        .unwrap();
 
+    delay();
+    // blink(&mut led, 4);
 
     // unsafe {
     //     (*pac::PSM::PTR)
@@ -157,36 +167,127 @@ fn main() -> ! {
     //     }
 
     // hal::reset();
+    // loop{}
     cortex_m::peripheral::SCB::sys_reset();
 }
 
 #[inline(never)]
 // #[link_section = ".data"]
+// fn main1(led: &mut impl OutputPin) -> ! {
 fn main1() -> ! {
-    // Get the second core's copy of the `CorePeripherals`, which are per-core.
-    // Unfortunately, `cortex-m` doesn't support this properly right now,
-    // so we have to use `steal`.
-    // let core = unsafe { pac::CorePeripherals::steal() };
-    // Set up the delay for the second core.
-    // let mut delay = Delay::new(core.SYST, sys_freq);
-    // Blink the second LED.
+    unsafe {
+        core::arch::asm!(
+            // infinite loop
+            "1:", "b 1b", // NOP slide
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop", "nop",
+            "nop", "nop", "nop", "nop", "nop",
+        );
+    }
+
+    // Grab our singleton objects
+    // We don't care about safety here...
+    let mut pac = unsafe { pac::Peripherals::steal() };
+    // let core = pac::CorePeripherals::take().unwrap();
+
+    // Set up the GPIO pins
+    let mut sio = Sio::new(pac.SIO);
+    let pins = Pins::new(
+        pac.IO_BANK0,
+        pac.PADS_BANK0,
+        sio.gpio_bank0,
+        &mut pac.RESETS,
+    );
+
+    let mut led = pins.gpio25.into_push_pull_output();
+
+    // led.set_high();
+    blink(&mut led, 10);
     loop {
-        // cortex_m::asm::wfe();
-        // cortex_m::asm::bkpt();
-        // delay.delay_us(CORE1_DELAY)
-        // cortex_m::asm::delay(10000);
-        // let real_cycles = 5000;
-        // unsafe {
-        //     core::arch::asm!(
-        //         // Use local labels to avoid R_ARM_THM_JUMP8 relocations which fail on thumbv6m.
-        //         "1:",
-        //         "subs {}, #1",
-        //         "bne 1b",
-        //         inout(reg) real_cycles => _,
-        //         options(nomem, nostack),
-        //     )
-        // }
-        delay();
+        cortex_m::asm::wfe();
     }
 }
 
